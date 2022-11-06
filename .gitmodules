@@ -1,0 +1,3 @@
+[submodule "ArduinoProtoThread"]
+	path = ArduinoProtoThread
+	url = https://github.com/gregkrsak/ArduinoProtoThread.git
