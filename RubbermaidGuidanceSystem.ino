@@ -15,8 +15,9 @@
 //
 // HARDWARE RECOMMENDED:
 // =====================
+// (1) *additional* Arduino, with Qwiic support (to reduce LIDAR polling lag)
 // (1) SparkFun Qwiic MultiPort
-// (7) SparkFun Qwiic cable - 100mm
+// (8) SparkFun Qwiic cable - 100mm
 //
 // NOTES:
 // ======
@@ -63,6 +64,10 @@
 // ArduinoProtoThread class
 #include "ArduinoProtoThread.hpp"
 #include "ArduinoProtoThreadStateMachine.hpp"
+
+
+// Feature flippers
+#define FEATURE_DUAL_CONTROLLER false
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
