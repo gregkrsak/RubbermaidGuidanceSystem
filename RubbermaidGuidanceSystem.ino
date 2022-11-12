@@ -73,6 +73,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // LIDAR
 //////////////////////////////////////////////////////////////////////////////////////////////////
+#if FEATURE_DUAL_CONTROLLER == false
 #include <LIDARLite_v4LED.h>
 #include <SparkFun_Alphanumeric_Display.h>
 
@@ -118,6 +119,7 @@ class LidarController : public ArduinoProtoThreadEventHandler
 
 ArduinoProtoThread *lidarThread;
 LidarController *lidarThreadDelegate;
+#endif
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -204,6 +206,7 @@ ImuController *imuThreadDelegate;
 //////////////////////////////////////////////////////////////////////////////////////////////////
 void setup()
 {
+#if FEATURE_DUAL_CONTROLLER == false
   // Initialize LIDAR delegate
   lidarThreadDelegate = new LidarController();
   // Initialize LIDAR protothread
@@ -211,7 +214,7 @@ void setup()
   lidarThread->setEventHandlerTo(lidarThreadDelegate);
   lidarThread->setExecutionIntervalTo(500);
   lidarThread->changeStateTo(Start);
-
+#endif
   // Initialize IMU delegate
   imuThreadDelegate = new ImuController();
   // Initialize IMU protothread
