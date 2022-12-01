@@ -69,138 +69,43 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // FEATURE FLIPPERS
 //////////////////////////////////////////////////////////////////////////////////////////////////
-#define FEATURE_DUAL_CONTROLLER false // True if LIDAR runs on a separate Arduino
+#define FEATURE_DUAL_CONTROLLER true  // True if LIDAR runs on a separate Arduino.
+                                      // It's safer to leave this set to FALSE.
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+// BUILD TARGET
+//////////////////////////////////////////////////////////////////////////////////////////////////
+#define __IMU   1
+#define __LIDAR 2
+
+#define BUILD_TARGET __IMU // <- CAN BE IGNORED IF NOT IN DUAL CONTROLLER MODE
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // LIDAR
 //////////////////////////////////////////////////////////////////////////////////////////////////
-#if FEATURE_DUAL_CONTROLLER == false
-#include <LIDARLite_v4LED.h>
-#include <SparkFun_Alphanumeric_Display.h>
+#if (FEATURE_DUAL_CONTROLLER == false) || (FEATURE_DUAL_CONTROLLER == true && BUILD_TARGET == __LIDAR)
 
-class LidarController : public ArduinoProtoThreadEventHandler
-{
-  public:
-    LidarController()
-    {
-      // Constructor code here
-    }
-    ~LidarController() { }
+  #include "Lidar.hpp"
 
-    void onStart()
-    {
-      lidar.begin();
-      display.begin();
-    }
-    void onRunning()
-    {
-      // Read LIDAR range in centimeters
-      lidarRange = lidar.getDistance();
-      lidarRangeString = String(lidarRange);
-      lidarRangeDigitsToLeftOfDecimal = lidarRangeString.indexOf('.');
-      friendlyLidarRange = lidarRangeString.substring(0, lidarRangeDigitsToLeftOfDecimal);
-      // Display LIDAR range on alphanumeric display
-      display.print(friendlyLidarRange);
-    }
-    void onKill()
-    {
-      return;
-    }
+  ArduinoProtoThread *lidarThread;
+  LidarController *lidarThreadDelegate;
 
-  protected:
-    // (Model) SparkFun Qwiic LIDAR Lite v4
-    LIDARLite_v4LED lidar;
-    float lidarRange;
-    int lidarRangeDigitsToLeftOfDecimal;
-    String lidarRangeString;
-    String friendlyLidarRange;
-    // (View) SparkFun Qwiic Alphanumeric Display
-    HT16K33 display;
-};
-
-ArduinoProtoThread *lidarThread;
-LidarController *lidarThreadDelegate;
 #endif
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // IMU
 //////////////////////////////////////////////////////////////////////////////////////////////////
-#include <Adafruit_LSM6DSOX.h>
-#include <SparkFun_Alphanumeric_Display.h>
+#if (FEATURE_DUAL_CONTROLLER == false) || (FEATURE_DUAL_CONTROLLER == true && BUILD_TARGET == __IMU)
 
-// Math-related defines
-#define RAD_TO_DEG_PER_SEC_CONVERSION_SCALAR 57.2958
-// I2C-related defines
-#define PITCH_DISPLAY_I2C_ADDRESS 0x71
-#define ROLL_DISPLAY_I2C_ADDRESS 0x72
-#define YAW_DISPLAY_I2C_ADDRESS 0x73
+  #include "Imu.hpp"
+  
+  ArduinoProtoThread *imuThread;
+  ImuController *imuThreadDelegate;
 
-class ImuController : public ArduinoProtoThreadEventHandler
-{
-  public:
-    ImuController()
-    {
-      // Constructor code here
-    }
-    ~ImuController() { }
-
-    void onStart()
-    {
-      // Initialize Inertial Measurement Unit
-      imu.begin_I2C();
-      imu.setAccelDataRate(LSM6DS_RATE_SHUTDOWN);
-      imu.setGyroRange(LSM6DS_GYRO_RANGE_500_DPS);
-      imu.setGyroDataRate(LSM6DS_RATE_26_HZ);
-      // Initialize alphanumeric displays for pitch/roll/yaw
-      pitchDisplay.begin(PITCH_DISPLAY_I2C_ADDRESS);
-      rollDisplay.begin(ROLL_DISPLAY_I2C_ADDRESS);
-      yawDisplay.begin(YAW_DISPLAY_I2C_ADDRESS);
-    }
-    void onRunning()
-    {  
-      // Get a new normalized sensor event
-      sensors_event_t translation;        // Accelerometer (not used)
-      sensors_event_t rotation;           // Gyroscope
-      sensors_event_t heat;               // Thermometer (not used)
-      imu.getEvent(&translation, &rotation, &heat);
-
-      // Read gyro rates in rad/s
-      pitchRadiansPerSecond = rotation.gyro.x;
-      rollRadiansPerSecond = rotation.gyro.y;
-      yawRadiansPerSecond = rotation.gyro.z;
-      
-      // Convert to deg/s
-      pitchDegreesPerSecond = pitchRadiansPerSecond * RAD_TO_DEG_PER_SEC_CONVERSION_SCALAR;
-      rollDegreesPerSecond = rollRadiansPerSecond * RAD_TO_DEG_PER_SEC_CONVERSION_SCALAR;
-      yawDegreesPerSecond = yawRadiansPerSecond * RAD_TO_DEG_PER_SEC_CONVERSION_SCALAR;
-      pitchAbsoluteDegreesPerSecond = (int)abs(pitchDegreesPerSecond);
-      rollAbsoluteDegreesPerSecond = (int)abs(rollDegreesPerSecond);
-      yawAbsoluteDegreesPerSecond = (int)abs(yawDegreesPerSecond);
-      
-      // Display gyro rates on the alphanumeric displays
-      pitchDisplay.print(pitchAbsoluteDegreesPerSecond);
-      rollDisplay.print(rollAbsoluteDegreesPerSecond);
-      yawDisplay.print(yawAbsoluteDegreesPerSecond);
-    }
-    void onKill()
-    {
-      return;
-    }
-
-  protected:
-    // (Model) Adafruit StemmaQT (Qwiic) LSM6DSOX 6dof IMU
-    Adafruit_LSM6DSOX imu;
-    float pitchRadiansPerSecond, rollRadiansPerSecond, yawRadiansPerSecond;
-    float pitchDegreesPerSecond, rollDegreesPerSecond, yawDegreesPerSecond;
-    int pitchAbsoluteDegreesPerSecond, rollAbsoluteDegreesPerSecond, yawAbsoluteDegreesPerSecond;
-    // (View) SparkFun Qwiic Alphanumeric Displays
-    HT16K33 pitchDisplay, rollDisplay, yawDisplay;
-};
-
-ArduinoProtoThread *imuThread;
-ImuController *imuThreadDelegate;
+#endif
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -208,7 +113,8 @@ ImuController *imuThreadDelegate;
 //////////////////////////////////////////////////////////////////////////////////////////////////
 void setup()
 {
-#if FEATURE_DUAL_CONTROLLER == false
+  
+#if (FEATURE_DUAL_CONTROLLER == false) || (FEATURE_DUAL_CONTROLLER == true && BUILD_TARGET == __LIDAR)
   // Initialize LIDAR delegate
   lidarThreadDelegate = new LidarController();
   // Initialize LIDAR protothread
@@ -217,6 +123,8 @@ void setup()
   lidarThread->setExecutionIntervalTo(500);
   lidarThread->changeStateTo(Start);
 #endif
+
+#if (FEATURE_DUAL_CONTROLLER == false) || (FEATURE_DUAL_CONTROLLER == true && BUILD_TARGET == __IMU)
   // Initialize IMU delegate
   imuThreadDelegate = new ImuController();
   // Initialize IMU protothread
@@ -224,6 +132,7 @@ void setup()
   imuThread->setEventHandlerTo(imuThreadDelegate);
   imuThread->setExecutionIntervalTo(50);
   imuThread->changeStateTo(Start);
+#endif
 
   // Initialize I2C bus
   Wire.begin();
@@ -235,8 +144,15 @@ void setup()
 //////////////////////////////////////////////////////////////////////////////////////////////////
 void loop()
 {
+  
+#if (FEATURE_DUAL_CONTROLLER == false) || (FEATURE_DUAL_CONTROLLER == true && BUILD_TARGET == __LIDAR)
   lidarThread->timeSlice();
+#endif
+
+#if (FEATURE_DUAL_CONTROLLER == false) || (FEATURE_DUAL_CONTROLLER == true && BUILD_TARGET == __IMU)
   imuThread->timeSlice();
+#endif
+
 }
 
 // End of RubbermaidGuidanceSystem.ino
